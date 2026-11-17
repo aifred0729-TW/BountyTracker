@@ -1,113 +1,385 @@
 <!doctype html>
-<html lang="zh-Hant">
+<html lang="zh-Hant" data-theme="dark">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>BountyTracker</title>
+<script>
+  // apply the saved theme before first paint
+  try { document.documentElement.dataset.theme = localStorage.getItem('bt-theme') || 'dark'; } catch (e) {}
+</script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;700&family=Noto+Sans+TC:wght@400;500;700&display=swap">
 <style>
+/* CORPO dialect: ink on neutral charcoal / ink on white. Strictly monochrome —
+   the only chroma is semantic (danger red, sync green). Soft rectangles,
+   hairline rules, quiet mono labels. */
 :root {
-  --bg: #0e1116; --panel: #161b22; --panel2: #1c232d; --line: #2a323d;
-  --text: #e6edf3; --muted: #8b98a8; --accent: #3fb6a8; --accent-dim: #1f5f59;
-  --up: #56d364; --warn: #e3b341; --bad: #f47067;
+  --bg: #0a0a0a; --bg-2: #111111;
+  --panel: rgba(18, 18, 18, .9); --panel-solid: #151515; --surface-hi: #262626;
+  --text: #f5f5f5; --text-dim: #b4b4b4; --text-faint: #7d7d7d;
+  --accent: #f5f5f5; --on-accent: #0a0a0a;
+  --danger: #e5484d; --success: #34c077;
+  --border: rgba(255, 255, 255, .14); --border-dim: rgba(255, 255, 255, .09);
+  --border-hot: rgba(255, 255, 255, .42);
+  --glow-primary: 0 6px 24px -10px rgba(0, 0, 0, .5);
+  --glow-danger: 0 6px 24px -10px rgba(229, 72, 77, .3);
+  --shadow: 0 12px 32px -18px rgba(0, 0, 0, .45);
+  --grid-line: rgba(255, 255, 255, .015);
+  --shape: 10px; --shape-sm: 6px;
+  --ease-out: cubic-bezier(.22, 1, .36, 1); --ease-snap: cubic-bezier(.32, 1.06, .48, 1);
+  --dur: .3s; --dur-s: .16s;
+  --font-body: 'Inter', 'Noto Sans TC', 'Noto Sans CJK TC', 'PingFang TC', 'Microsoft JhengHei', sans-serif;
+  --font-mono: 'JetBrains Mono', 'Noto Sans Mono CJK TC', 'Sarasa Mono TC', 'PingFang TC', 'Microsoft JhengHei', monospace;
+  --blur: blur(14px) saturate(120%);
+  color-scheme: dark;
 }
-* { box-sizing: border-box; }
-body { margin: 0; background: var(--bg); color: var(--text);
-  font: 14px/1.5 system-ui, "Noto Sans TC", "PingFang TC", sans-serif; }
-.app { display: grid; grid-template-columns: 300px 1fr; min-height: 100vh; }
-aside { background: var(--panel); border-right: 1px solid var(--line); padding: 16px;
-  display: flex; flex-direction: column; gap: 12px; position: sticky; top: 0; height: 100vh; }
-h1 { font-size: 18px; margin: 0; letter-spacing: .3px; }
-h1 span { color: var(--accent); }
-h2 { font-size: 13px; text-transform: uppercase; letter-spacing: .8px; color: var(--muted);
-  margin: 0 0 10px; font-weight: 600; }
-form { display: flex; gap: 6px; }
-input { flex: 1; min-width: 0; background: var(--bg); border: 1px solid var(--line);
-  color: var(--text); border-radius: 6px; padding: 7px 9px; font: inherit; }
-input:focus { outline: 1px solid var(--accent); border-color: var(--accent); }
-button { background: var(--accent-dim); color: var(--text); border: 1px solid var(--accent);
-  border-radius: 6px; padding: 7px 11px; font: inherit; cursor: pointer; white-space: nowrap; }
-button:hover { background: var(--accent); color: #06231f; }
-button.ghost { background: transparent; border-color: var(--line); color: var(--muted); }
-button.ghost:hover { color: var(--text); border-color: var(--muted); background: transparent; }
-button:disabled { opacity: .5; cursor: wait; }
-.plist { display: flex; flex-direction: column; gap: 6px; overflow-y: auto; }
-.pitem { padding: 10px; border: 1px solid var(--line); border-radius: 8px; cursor: pointer;
-  background: var(--bg); }
-.pitem:hover { border-color: var(--muted); }
-.pitem.active { border-color: var(--accent); background: var(--panel2); }
-.pitem .t { font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.pitem .m { display: flex; justify-content: space-between; color: var(--muted); font-size: 12px; }
-.num { font-variant-numeric: tabular-nums; }
-.up { color: var(--up); } .bad { color: var(--bad); } .muted { color: var(--muted); }
-main { padding: 24px 28px; min-width: 0; }
-.head { display: flex; justify-content: space-between; align-items: flex-start; gap: 16px;
-  margin-bottom: 18px; flex-wrap: wrap; }
-.head h1 { font-size: 22px; }
-.head a { color: var(--accent); text-decoration: none; font-size: 13px; word-break: break-all; }
-.tiles { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 12px;
-  margin-bottom: 18px; }
-.tile { background: var(--panel); border: 1px solid var(--line); border-radius: 10px;
-  padding: 14px; }
-.tile .k { color: var(--muted); font-size: 12px; }
-.tile .v { font-size: 26px; font-weight: 650; margin-top: 2px; }
-.tile .s { color: var(--muted); font-size: 12px; }
-.card { background: var(--panel); border: 1px solid var(--line); border-radius: 10px;
-  padding: 16px; margin-bottom: 18px; }
-.grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 18px; }
-.grid2 .card { margin-bottom: 0; }
-.grid2 { margin-bottom: 18px; }
-svg { display: block; width: 100%; height: auto; }
-.tablewrap { overflow-x: auto; }
-table { width: 100%; border-collapse: collapse; }
-th, td { text-align: left; padding: 8px 10px; border-bottom: 1px solid var(--line);
-  vertical-align: middle; }
-th { color: var(--muted); font-weight: 600; font-size: 12px; }
+[data-theme="light"] {
+  --bg: #fafafa; --bg-2: #f0f0f0;
+  --panel: rgba(255, 255, 255, .92); --panel-solid: #ffffff; --surface-hi: #e9e9e9;
+  --text: #141414; --text-dim: #4b4b4b; --text-faint: #6f6f6f;
+  --accent: #141414; --on-accent: #fafafa;
+  --danger: #ce2c31; --success: #147d51;
+  --border: rgba(0, 0, 0, .14); --border-dim: rgba(0, 0, 0, .08); --border-hot: rgba(0, 0, 0, .48);
+  --glow-primary: 0 6px 22px -12px rgba(0, 0, 0, .25);
+  --glow-danger: 0 6px 22px -10px rgba(206, 44, 49, .3);
+  --shadow: 0 12px 30px -20px rgba(0, 0, 0, .18);
+  --grid-line: rgba(0, 0, 0, .03);
+  color-scheme: light;
+}
+
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body { background: var(--bg); color: var(--text); font-family: var(--font-body);
+  font-size: 15px; line-height: 1.6; min-height: 100dvh; overflow-x: hidden;
+  -webkit-font-smoothing: antialiased;
+  transition: background .4s var(--ease-out), color .4s var(--ease-out); }
+/* blueprint grid + neutral vignette, no hue */
+body::before { content: ''; position: fixed; inset: 0; z-index: 0; pointer-events: none;
+  background-image: linear-gradient(var(--grid-line) 1px, transparent 1px),
+    linear-gradient(90deg, var(--grid-line) 1px, transparent 1px);
+  background-size: 52px 52px; }
+.glowfield { position: fixed; inset: 0; z-index: 0; pointer-events: none;
+  background:
+    radial-gradient(ellipse 55% 45% at 85% 5%, color-mix(in srgb, var(--text) 4%, transparent), transparent 70%),
+    radial-gradient(ellipse 50% 40% at 5% 90%, color-mix(in srgb, var(--text) 3%, transparent), transparent 70%); }
+::selection { background: var(--text); color: var(--bg); }
+a { color: var(--text); text-decoration: none; }
+button, input { font-family: inherit; }
+:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; border-radius: var(--shape-sm); }
+h1, h2, h3 { font-weight: 600; }
+.mono { font-family: var(--font-mono); }
+.num { font-family: var(--font-mono); font-variant-numeric: tabular-nums; }
+.up { color: var(--success); } .down { color: var(--danger); } .flat { color: var(--text-faint); }
+.dim { color: var(--text-dim); } .faint { color: var(--text-faint); }
+svg.ic { width: 15px; height: 15px; flex: none; fill: none; stroke: currentColor;
+  stroke-width: 1.75; stroke-linecap: round; stroke-linejoin: round; }
+
+/* nav */
+.nav { position: sticky; top: 0; z-index: 100; border-bottom: 1px solid var(--border-dim);
+  background: color-mix(in srgb, var(--bg) 80%, transparent);
+  backdrop-filter: var(--blur); -webkit-backdrop-filter: var(--blur); }
+.nav-inner { max-width: 1480px; margin: 0 auto; padding: 0 24px; height: 58px;
+  display: flex; align-items: center; gap: 20px; }
+.logo { font-weight: 700; font-size: 16px; letter-spacing: -.01em; white-space: nowrap; }
+.logo .tick { color: var(--text-faint); margin: 0 1px; }
+.logo .ver { font-family: var(--font-mono); font-weight: 400; font-size: 10.5px;
+  letter-spacing: .08em; color: var(--text-faint); margin-left: 8px; }
+.nav-status { margin-left: auto; display: flex; align-items: center; gap: 9px;
+  font-family: var(--font-mono); font-size: 11px; letter-spacing: .06em;
+  color: var(--text-dim); white-space: nowrap; }
+.nav-status i { width: 7px; height: 7px; border-radius: 50%; background: var(--success);
+  color: var(--success); animation: pulse-soft 2s var(--ease-out) infinite; }
+@keyframes pulse-soft {
+  0% { box-shadow: 0 0 0 0 color-mix(in srgb, currentColor 55%, transparent); }
+  70% { box-shadow: 0 0 0 8px transparent; } 100% { box-shadow: 0 0 0 0 transparent; } }
+.theme-switch { display: flex; gap: 3px; flex-shrink: 0; padding: 3px; border-radius: 999px;
+  background: var(--panel); border: 1px solid var(--border-dim); }
+.theme-switch button { background: transparent; border: none; color: var(--text-faint);
+  font-family: var(--font-mono); font-size: 10.5px; letter-spacing: .1em; padding: 5px 12px;
+  border-radius: 999px; cursor: pointer; transition: all var(--dur) var(--ease-snap); }
+.theme-switch button.active { background: var(--text); color: var(--bg); }
+
+/* layout */
+.shell { position: relative; z-index: 1; max-width: 1480px; margin: 0 auto; padding: 24px;
+  display: grid; grid-template-columns: 300px minmax(0, 1fr); gap: 20px; align-items: start; }
+main { min-width: 0; display: flex; flex-direction: column; gap: 20px; }
+main > * { animation: rise .5s var(--ease-out); }
+@keyframes rise { from { opacity: .35; transform: translateY(10px); } }
+
+/* panel primitive — soft surface, hairline border */
+.panel { position: relative; padding: 22px; background: var(--panel);
+  border: 1px solid var(--border); border-radius: var(--shape); box-shadow: var(--shadow);
+  backdrop-filter: var(--blur); -webkit-backdrop-filter: var(--blur);
+  transition: border-color var(--dur-s) var(--ease-out), box-shadow var(--dur) var(--ease-out); }
+.panel:hover { border-color: color-mix(in srgb, var(--text) 24%, transparent); }
+.p-head { display: flex; align-items: baseline; gap: 12px; margin-bottom: 16px; }
+.p-head .idx { font-family: var(--font-mono); font-size: 10.5px; letter-spacing: .08em;
+  color: var(--text-faint); }
+.p-head h2 { font-size: 15px; letter-spacing: -.01em; }
+.p-head .read { margin-left: auto; font-family: var(--font-mono); font-size: 11px;
+  letter-spacing: .06em; color: var(--text-dim); }
+
+/* buttons */
+.btn { --b-bg: var(--panel-solid); --b-fg: var(--text); --b-glow: var(--shadow);
+  display: inline-flex; align-items: center; justify-content: center; gap: 8px;
+  font-weight: 600; font-size: 13.5px; letter-spacing: .01em; white-space: nowrap;
+  background: var(--b-bg); color: var(--b-fg); border: 1px solid var(--border-dim);
+  border-radius: var(--shape-sm); padding: 0 16px; min-height: 40px; cursor: pointer;
+  touch-action: manipulation;
+  transition: transform var(--dur) var(--ease-snap), box-shadow var(--dur) var(--ease-out),
+    border-color var(--dur-s), background var(--dur-s), color var(--dur-s); }
+.btn:hover { transform: translateY(-1px); box-shadow: var(--b-glow); }
+.btn:active { transform: translateY(0) scale(.98); transition-duration: .09s; }
+.btn:disabled { opacity: .4; cursor: not-allowed; transform: none; box-shadow: none; }
+.btn-primary { --b-bg: var(--text); --b-fg: var(--bg); --b-glow: var(--glow-primary);
+  border-color: transparent; }
+.btn-outline { --b-bg: transparent; border-color: color-mix(in srgb, var(--text) 45%, transparent); }
+.btn-ghost { --b-bg: transparent; --b-fg: var(--text-dim); border-color: var(--border-dim);
+  box-shadow: none; }
+.btn-ghost:hover { --b-fg: var(--text); box-shadow: none;
+  background: color-mix(in srgb, var(--text) 6%, transparent); }
+.btn-ghost.danger:hover { --b-fg: var(--danger);
+  border-color: color-mix(in srgb, var(--danger) 45%, transparent);
+  background: color-mix(in srgb, var(--danger) 7%, transparent); }
+.btn-sm { min-height: 36px; padding: 0 13px; font-size: 12.5px; }
+.spin { animation: spin .9s linear infinite; }
+@keyframes spin { to { transform: rotate(360deg); } }
+
+/* inputs */
+.input { width: 100%; min-height: 40px; padding: 0 13px; font-size: 14px; color: var(--text);
+  background: color-mix(in srgb, var(--bg-2) 70%, transparent);
+  border: 1px solid var(--border-dim); border-radius: var(--shape-sm);
+  transition: border-color var(--dur-s) var(--ease-out), box-shadow var(--dur) var(--ease-out); }
+.input::placeholder { color: var(--text-faint); }
+.input:focus { outline: none; border-color: color-mix(in srgb, var(--accent) 65%, transparent);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent) 18%, transparent); }
+.field { position: relative; display: flex; gap: 8px; }
+.field.icon svg { position: absolute; left: 12px; top: 50%; transform: translateY(-50%);
+  color: var(--text-faint); pointer-events: none; }
+.field.icon .input { padding-left: 35px; }
+
+/* sidebar */
+aside.panel { position: sticky; top: 82px; height: calc(100dvh - 106px); padding: 16px;
+  display: flex; flex-direction: column; gap: 12px; min-height: 0; }
+.lbl { display: flex; justify-content: space-between; font-family: var(--font-mono);
+  font-size: 10.5px; letter-spacing: .08em; text-transform: uppercase; color: var(--text-faint); }
+.plist { flex: 1; min-height: 0; overflow-y: auto; display: flex; flex-direction: column;
+  gap: 2px; margin: 0 -6px; padding: 0 6px; scrollbar-width: thin;
+  scrollbar-color: var(--border) transparent; }
+.pitem { width: 100%; text-align: left; cursor: pointer; padding: 10px 12px; min-height: 54px;
+  background: transparent; color: var(--text); border: 1px solid transparent;
+  border-left: 2px solid transparent; border-radius: var(--shape-sm);
+  transition: background var(--dur-s), border-color var(--dur-s); }
+.pitem:hover { background: color-mix(in srgb, var(--text) 5%, transparent); }
+.pitem.active { background: color-mix(in srgb, var(--text) 8%, transparent);
+  border-color: var(--border); border-left-color: var(--accent); }
+.pitem .t { font-weight: 600; font-size: 13.5px; overflow: hidden; text-overflow: ellipsis;
+  white-space: nowrap; }
+.pitem .m { display: flex; justify-content: space-between; gap: 8px; margin-top: 2px;
+  font-family: var(--font-mono); font-size: 11px; letter-spacing: .04em; color: var(--text-faint); }
+.pitem .m b { color: var(--text-dim); font-weight: 500; }
+.err { color: var(--danger); font-size: 12px; overflow-wrap: anywhere; }
+.err:empty { display: none; }
+
+/* header card — F-01 bracket: corner strokes imply the surface */
+.hero { padding: 26px 28px; display: flex; justify-content: space-between;
+  align-items: flex-start; gap: 20px; flex-wrap: wrap; }
+.hero .fc { position: absolute; width: 16px; height: 16px; border: 0 solid var(--text);
+  opacity: .5; pointer-events: none;
+  transition: width .3s var(--ease-out), height .3s var(--ease-out), opacity .3s var(--ease-out); }
+.hero .c-tl { top: 10px; left: 10px; border-top-width: 1.5px; border-left-width: 1.5px; border-top-left-radius: 7px; }
+.hero .c-tr { top: 10px; right: 10px; border-top-width: 1.5px; border-right-width: 1.5px; border-top-right-radius: 7px; }
+.hero .c-bl { bottom: 10px; left: 10px; border-bottom-width: 1.5px; border-left-width: 1.5px; border-bottom-left-radius: 7px; }
+.hero .c-br { bottom: 10px; right: 10px; border-bottom-width: 1.5px; border-right-width: 1.5px; border-bottom-right-radius: 7px; }
+.hero:hover .fc { width: 24px; height: 24px; opacity: 1; }
+.hero-tag { font-family: var(--font-mono); font-size: 11px; letter-spacing: .08em;
+  text-transform: uppercase; color: var(--text-dim); margin-bottom: 8px; }
+.hero h1 { font-size: clamp(21px, 2.4vw, 28px); letter-spacing: -.02em; line-height: 1.25; }
+.tags { display: flex; flex-wrap: wrap; gap: 8px; margin: 14px 0 12px; }
+.badge { display: inline-flex; align-items: center; gap: 7px; font-family: var(--font-mono);
+  font-size: 11px; letter-spacing: .06em; text-transform: uppercase; padding: 3px 11px;
+  white-space: nowrap; color: var(--text-dim); border-radius: 999px;
+  border: 1px solid color-mix(in srgb, currentColor 45%, transparent);
+  background: color-mix(in srgb, currentColor 8%, transparent); }
+.badge .dot { width: 6px; height: 6px; border-radius: 50%; background: currentColor; }
+.badge.net { color: var(--text); }
+.badge.hostile { color: var(--danger); }
+.badge.plain { text-transform: none; font-family: var(--font-body); font-size: 12px; letter-spacing: 0; }
+.hero a.src { font-family: var(--font-mono); font-size: 12px; color: var(--text-dim);
+  word-break: break-all; display: inline-flex; align-items: center; gap: 7px;
+  border-bottom: 1px dashed var(--border); padding-bottom: 1px;
+  transition: color var(--dur-s), border-color var(--dur-s); }
+.hero a.src:hover { color: var(--text); border-bottom-color: var(--border-hot); }
+.hero .side { display: flex; flex-direction: column; align-items: flex-end; gap: 12px; }
+.stamp { font-family: var(--font-mono); font-size: 11px; letter-spacing: .04em;
+  color: var(--text-faint); text-align: right; }
+
+/* KPI tiles */
+.kpis { display: grid; grid-template-columns: repeat(6, minmax(0, 1fr)); gap: 14px; }
+.kpi { padding: 18px 20px 16px;
+  transition: transform var(--dur) var(--ease-snap), border-color var(--dur-s), box-shadow var(--dur) var(--ease-out); }
+.kpi:hover { transform: translateY(-2px); }
+.kpi .k-label { font-family: var(--font-mono); font-size: 10.5px; letter-spacing: .08em;
+  color: var(--text-dim); text-transform: uppercase; }
+.kpi .k-val { font-weight: 700; font-size: 27px; margin: 4px 0 2px; letter-spacing: -.02em;
+  font-variant-numeric: tabular-nums; }
+.kpi .k-delta { font-size: 12px; color: var(--text-faint);
+  min-height: 18px; }
+/* F-04 inverse — solid ink slab for the headline number */
+.kpi.inverse { background: var(--text); color: var(--bg); border-color: transparent; }
+.kpi.inverse .k-label { color: color-mix(in srgb, var(--bg) 62%, var(--text)); }
+.kpi.inverse .k-delta { color: color-mix(in srgb, var(--bg) 62%, var(--text)); }
+.kpi.inverse .up { color: color-mix(in srgb, var(--success) 70%, var(--bg)); }
+.kpi.inverse .down { color: color-mix(in srgb, var(--danger) 80%, var(--bg)); }
+.kpi.inverse:hover { box-shadow: var(--shadow), 0 18px 40px -18px rgba(0, 0, 0, .5); }
+
+/* charts */
+.grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+svg.chart { width: 100%; height: auto; display: block; overflow: visible; }
+.ch-grid { stroke: var(--border-dim); stroke-width: 1; }
+.ch-axis { font-family: var(--font-mono); font-size: 9px; fill: var(--text-faint); letter-spacing: .06em; }
+.ch-line { stroke: var(--text); stroke-width: 1.75; fill: none; stroke-linejoin: round; stroke-linecap: round; }
+.ch-area { fill: color-mix(in srgb, var(--text) 9%, transparent); }
+.ch-bar { fill: color-mix(in srgb, var(--text) 65%, transparent); transition: fill .15s; cursor: crosshair; }
+.ch-bar:hover { fill: var(--text); }
+.ch-bar.neg { fill: var(--danger); }
+.ch-pt { fill: var(--panel-solid); stroke: var(--text); stroke-width: 1.5; pointer-events: none; }
+.ch-hit { fill: transparent; cursor: crosshair; }
+.spark { width: 84px; height: 22px; display: block; }
+.spark polyline { fill: none; stroke: var(--text-dim); stroke-width: 1.5;
+  stroke-linejoin: round; stroke-linecap: round; }
+
+/* table */
+.table-wrap { overflow-x: auto; border: 1px solid var(--border-dim); border-radius: var(--shape);
+  scrollbar-width: thin; scrollbar-color: var(--border) transparent; }
+table { width: 100%; border-collapse: collapse; font-size: 13.5px; }
+th { background: color-mix(in srgb, var(--bg-2) 85%, transparent); color: var(--text);
+  font-family: var(--font-mono); font-size: 10.5px; font-weight: 500; letter-spacing: .08em;
+  text-transform: uppercase; text-align: left; padding: 11px 12px; white-space: nowrap;
+  border-bottom: 1px solid var(--border); }
+td { padding: 10px 12px; border-bottom: 1px solid var(--border-dim); color: var(--text-dim);
+  white-space: nowrap; vertical-align: middle; }
+tbody tr { transition: background var(--dur-s); }
+tbody tr:hover { background: color-mix(in srgb, var(--text) 5%, transparent); }
+tbody tr:last-child td { border-bottom: 0; }
+td.scope { color: var(--text); font-family: var(--font-mono); font-size: 12.5px;
+  max-width: 250px; overflow: hidden; text-overflow: ellipsis; }
 td.r, th.r { text-align: right; }
-td.scope { max-width: 420px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.badge { display: inline-block; padding: 1px 7px; border-radius: 99px; font-size: 11px;
-  border: 1px solid var(--line); color: var(--muted); }
-.badge.CRITICAL { color: var(--bad); border-color: var(--bad); }
-.badge.HIGH { color: var(--warn); border-color: var(--warn); }
-.note { border-left: 3px solid var(--warn); background: var(--panel2); padding: 10px 12px;
-  border-radius: 0 6px 6px 0; color: var(--muted); margin-bottom: 12px; font-size: 13px; }
-.note code { color: var(--text); }
-.ev { display: flex; gap: 12px; padding: 7px 0; border-bottom: 1px solid var(--line); }
-.ev:last-child { border-bottom: 0; }
-.ev .d { color: var(--muted); width: 92px; flex: none; }
-.ev .b { min-width: 0; overflow-wrap: anywhere; }
-.empty { color: var(--muted); padding: 40px 0; text-align: center; }
-.err { color: var(--bad); font-size: 12px; min-height: 18px; overflow-wrap: anywhere; }
-#tip { position: fixed; pointer-events: none; background: #000c; border: 1px solid var(--line);
-  padding: 5px 8px; border-radius: 6px; font-size: 12px; display: none; z-index: 9; }
+td.num { font-size: 12.5px; } td.type { font-size: 13px; }
+
+/* banner */
+.banner { display: flex; gap: 12px; align-items: flex-start; padding: 12px 14px;
+  margin-bottom: 14px; font-size: 13px; color: var(--text-dim); border-radius: var(--shape);
+  border: 1px solid var(--border-dim); background: color-mix(in srgb, var(--text) 4%, transparent); }
+.banner .b-dot { width: 7px; height: 7px; margin-top: 7px; flex-shrink: 0; border-radius: 50%;
+  background: var(--text); color: var(--text); animation: pulse-soft 2s var(--ease-out) infinite; }
+.banner b { color: var(--text); font-family: var(--font-mono); font-size: 11px; letter-spacing: .08em; }
+code { font-family: var(--font-mono); font-size: .9em; color: var(--text); padding: 1px 6px;
+  border-radius: 4px; background: color-mix(in srgb, var(--text) 8%, transparent);
+  overflow-wrap: anywhere; }
+
+/* timeline */
+.tl-item { display: flex; gap: 16px; position: relative; padding-bottom: 20px; }
+.tl-item:last-child { padding-bottom: 2px; }
+.tl-item::before { content: ''; position: absolute; left: 5px; top: 16px; bottom: 0; width: 1px;
+  background: var(--border); }
+.tl-item:last-child::before { display: none; }
+.tl-item i { width: 11px; height: 11px; flex-shrink: 0; margin-top: 5px; border-radius: 50%;
+  background: var(--panel-solid); border: 1px solid var(--border-hot); z-index: 1; }
+.tl-item.program_reports i { background: var(--text); border-color: var(--text); }
+.tl-item.scope_added i { border-color: var(--success); }
+.tl-item.scope_removed i { border-color: var(--danger); }
+.tl-item b { font-family: var(--font-mono); font-size: 12px; letter-spacing: .06em;
+  font-weight: 500; color: var(--text); }
+.tl-item p { font-size: 13.5px; color: var(--text-dim); margin-top: 2px; overflow-wrap: anywhere; }
+.tl-item p strong { color: var(--text); font-weight: 600; }
+
+.empty { display: flex; flex-direction: column; align-items: center; gap: 8px;
+  padding: 44px 16px; text-align: center; color: var(--text-faint); }
+.empty svg.ic { width: 26px; height: 26px; }
+.empty b { font-size: 13px; letter-spacing: .04em; color: var(--text-dim); font-weight: 600; }
+.empty p { font-size: 12.5px; max-width: 34ch; }
+
+#tip { position: fixed; pointer-events: none; display: none; z-index: 200; padding: 6px 10px;
+  font-family: var(--font-mono); font-size: 11px; letter-spacing: .04em;
+  background: var(--text); color: var(--bg); border-radius: var(--shape-sm);
+  box-shadow: var(--shadow); }
+
+@media (max-width: 1320px) { .kpis { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
+@media (max-width: 1100px) { .grid-2 { grid-template-columns: 1fr; } }
 @media (max-width: 860px) {
-  .app { grid-template-columns: 1fr; } .grid2 { grid-template-columns: 1fr; }
-  aside { border-right: 0; border-bottom: 1px solid var(--line); } main { padding: 16px; }
+  body { font-size: 16px; }
+  .nav-inner { padding: 0 14px; gap: 12px; } .nav-status span { display: none; }
+  .shell { grid-template-columns: 1fr; padding: 14px; gap: 14px; }
+  aside.panel { position: static; height: auto; max-height: 48dvh; }
+  main { gap: 14px; } .grid-2 { gap: 14px; }
+  .panel { padding: 16px; } .hero { padding: 22px 20px; }
+  .hero .side { align-items: flex-start; } .stamp { text-align: left; }
+  .kpis { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
+  .kpi .k-val { font-size: 23px; }
+  .btn, .input { min-height: 44px; } .input { font-size: 16px; }
+  td.scope { max-width: 190px; }
+}
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { animation: none !important; transition: none !important; }
 }
 </style>
 </head>
 <body>
-<div class="app">
-  <aside>
-    <h1>Bounty<span>Tracker</span></h1>
-    <form id="addForm">
-      <input id="addUrl" placeholder="貼上 YesWeHack program 連結" autocomplete="off">
-      <button id="addBtn">追蹤</button>
+<svg width="0" height="0" style="position:absolute" aria-hidden="true"><defs>
+  <symbol id="i-search" viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></symbol>
+  <symbol id="i-plus" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></symbol>
+  <symbol id="i-refresh" viewBox="0 0 24 24"><path d="M3 12a9 9 0 0 1 15.5-6.2L21 8"/><path d="M21 3v5h-5"/><path d="M21 12a9 9 0 0 1-15.5 6.2L3 16"/><path d="M3 21v-5h5"/></symbol>
+  <symbol id="i-link" viewBox="0 0 24 24"><path d="M14 4h6v6"/><path d="M20 4 10 14"/><path d="M19 14v5a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V6a1 1 0 0 1 1-1h5"/></symbol>
+  <symbol id="i-trash" viewBox="0 0 24 24"><path d="M4 7h16M10 11v6M14 11v6"/><path d="M6 7l1 12a1 1 0 0 0 1 1h8a1 1 0 0 0 1-1l1-12"/><path d="M9 7V4h6v3"/></symbol>
+  <symbol id="i-chart" viewBox="0 0 24 24"><path d="M4 20V10M10 20V4M16 20v-7M22 20H2"/></symbol>
+  <symbol id="i-target" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="4"/><path d="M12 3v3M12 18v3M3 12h3M18 12h3"/></symbol>
+</defs></svg>
+<div class="glowfield" aria-hidden="true"></div>
+
+<nav class="nav">
+  <div class="nav-inner">
+    <a class="logo" href="/">Bounty<span class="tick">//</span>Tracker <span class="ver">v0.1</span></a>
+    <div class="nav-status"><i></i><span id="navStatus">SYNC</span></div>
+    <div class="theme-switch" role="group" aria-label="Theme">
+      <button id="theme-dark" aria-pressed="true">NIGHT</button>
+      <button id="theme-light" aria-pressed="false">DAY</button>
+    </div>
+  </div>
+</nav>
+
+<div class="shell">
+  <aside class="panel" aria-label="追蹤中的 program">
+    <form id="addForm" class="field">
+      <input id="addUrl" class="input" aria-label="Program 連結" placeholder="貼上 program 連結" autocomplete="off">
+      <button id="addBtn" class="btn btn-primary" aria-label="追蹤這個 program"><svg class="ic"><use href="#i-plus"/></svg>追蹤</button>
     </form>
-    <div class="err" id="err"></div>
+    <div class="err" id="err" role="alert"></div>
+    <div class="field icon">
+      <svg class="ic"><use href="#i-search"/></svg>
+      <input id="filter" class="input" type="search" aria-label="篩選 program" placeholder="篩選" autocomplete="off">
+    </div>
+    <div class="lbl"><span>Programs</span><span id="count">0</span></div>
     <div class="plist" id="plist"></div>
-    <button class="ghost" id="collectBtn" style="margin-top:auto">立即更新全部</button>
+    <button class="btn btn-ghost" id="collectBtn"><svg class="ic"><use href="#i-refresh"/></svg><span>立即更新全部</span></button>
   </aside>
-  <main id="main"><div class="empty">貼上一個 program 連結開始追蹤。</div></main>
+  <main id="main"></main>
 </div>
-<div id="tip"></div>
+<div id="tip" role="tooltip"></div>
+
 <script>
 const $ = s => document.querySelector(s);
 const esc = s => String(s ?? '').replace(/[&<>"']/g,
   c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const n = v => v == null ? '—' : Number(v).toLocaleString();
 const signed = v => v == null ? '—' : (v > 0 ? '+' : '') + v;
-const dcls = v => v > 0 ? 'up' : v < 0 ? 'bad' : 'muted';
-let current = null, readOnly = false;
+const arrow = v => v == null ? '—' : `${v > 0 ? '▲' : v < 0 ? '▼' : '◆'} ${Math.abs(v)}`;
+const dcls = v => v > 0 ? 'up' : v < 0 ? 'down' : 'flat';
+const icon = id => `<svg class="ic" aria-hidden="true"><use href="#i-${id}"/></svg>`;
+const EMPTY = `<div class="panel empty">${icon('target')}<b>尚未追蹤任何 program</b>
+  <p>在左側貼上一個 program 連結開始記錄。</p></div>`;
+let current = null, readOnly = false, programs = [];
 
 async function api(path, opt) {
   const r = await fetch(path, opt);
@@ -116,85 +388,113 @@ async function api(path, opt) {
   return j;
 }
 
-async function loadList(selectId) {
-  const list = await api('/api/programs');
-  if (selectId) current = selectId;
-  if (!list.some(p => p.id === current)) current = list[0]?.id ?? null;
-  $('#plist').innerHTML = list.map(p => `
-    <div class="pitem ${p.id === current ? 'active' : ''}" data-id="${p.id}">
+function setTheme(t) {
+  document.documentElement.dataset.theme = t;
+  try { localStorage.setItem('bt-theme', t); } catch (e) {}
+  for (const k of ['dark', 'light']) {
+    const b = $('#theme-' + k);
+    b.classList.toggle('active', k === t); b.setAttribute('aria-pressed', k === t);
+  }
+}
+$('#theme-dark').onclick = () => setTheme('dark');
+$('#theme-light').onclick = () => setTheme('light');
+setTheme(document.documentElement.dataset.theme === 'light' ? 'light' : 'dark');
+
+function renderList() {
+  const q = $('#filter').value.trim().toLowerCase();
+  const shown = programs.filter(p => !q ||
+    `${p.title} ${p.slug} ${p.company} ${p.platform}`.toLowerCase().includes(q));
+  $('#count').textContent = q ? `${shown.length} / ${programs.length}` : programs.length;
+  $('#plist').innerHTML = shown.map(p => `
+    <button class="pitem ${p.id === current ? 'active' : ''}" data-id="${p.id}"
+      ${p.id === current ? 'aria-current="true"' : ''}>
       <div class="t">${esc(p.title || p.slug)}</div>
       <div class="m"><span>${esc(p.platform)}</span>
-        <span class="num">${n(p.total_reports)}
+        <span><b>${n(p.total_reports)}</b>
           <span class="${dcls(p.delta)}">${p.delta == null ? '' : signed(p.delta)}</span></span></div>
       ${p.last_error ? `<div class="err">${esc(p.last_error)}</div>` : ''}
-    </div>`).join('');
-  document.querySelectorAll('.pitem').forEach(el =>
-    el.onclick = () => { current = +el.dataset.id; loadList(); });
-  if (current) loadDetail(current);
-  else $('#main').innerHTML = '<div class="empty">貼上一個 program 連結開始追蹤。</div>';
+    </button>`).join('') || '<p class="faint" style="padding:12px;font-size:13px">沒有符合的 program</p>';
+  document.querySelectorAll('.pitem').forEach(el => el.onclick = () => {
+    current = +el.dataset.id; renderList(); loadDetail(current);
+  });
 }
 
-function tile(k, v, s) {
-  return `<div class="tile"><div class="k">${k}</div><div class="v num">${v}</div>
-    <div class="s">${s || '&nbsp;'}</div></div>`;
+async function loadList(selectId) {
+  programs = await api('/api/programs');
+  if (selectId) current = selectId;
+  if (!programs.some(p => p.id === current)) current = programs[0]?.id ?? null;
+  renderList();
+  if (current) loadDetail(current); else $('#main').innerHTML = EMPTY;
 }
 
-// Bar or line chart as inline SVG. pts: [{label, value, tip}]
-function chart(pts, kind) {
-  const W = 560, H = 200, L = 44, R = 10, T = 12, B = 26;
+function kpi(label, val, delta, cls) {
+  return `<div class="panel kpi ${cls || ''}"><div class="k-label">${label}</div>
+    <div class="k-val">${val}</div><div class="k-delta">${delta || ''}</div></div>`;
+}
+
+// Bar or line chart as inline SVG, colored through CSS tokens. pts: [{label, value, tip}]
+function chart(pts, kind, label) {
+  const W = 560, H = 210, L = 46, R = 12, T = 14, B = 28;
   const vals = pts.map(p => p.value).filter(v => v != null);
-  if (!vals.length) return '<div class="empty">還沒有足夠的資料</div>';
+  if (!vals.length) return `<div class="empty">${icon('chart')}<b>資料不足</b>
+    <p>累積兩天以上的快照後會顯示。</p></div>`;
   let lo = kind === 'bar' ? Math.min(0, ...vals) : Math.min(...vals);
   let hi = Math.max(...vals, kind === 'bar' ? 1 : -Infinity);
-  if (hi === lo) { hi += 1; lo -= kind === 'bar' ? 0 : 1; }
+  if (kind === 'line') { const pad = Math.max(1, Math.ceil((hi - lo) * .15)); lo -= pad; hi += pad; }
+  if ((hi - lo) % 3) hi += 3 - (hi - lo) % 3;
   const y = v => T + (H - T - B) * (1 - (v - lo) / (hi - lo));
   const step = (W - L - R) / pts.length, x = i => L + step * (i + .5);
   let g = '';
   for (let i = 0; i <= 3; i++) {
     const v = lo + (hi - lo) * i / 3, yy = y(v);
-    g += `<line x1="${L}" x2="${W - R}" y1="${yy}" y2="${yy}" stroke="var(--line)"/>
-      <text x="${L - 6}" y="${yy + 4}" text-anchor="end" fill="var(--muted)" font-size="10">${
+    g += `<line class="ch-grid" x1="${L}" x2="${W - R}" y1="${yy}" y2="${yy}"
+        ${i ? 'stroke-dasharray="3 4"' : ''}/>
+      <text class="ch-axis" x="${L - 8}" y="${yy + 3}" text-anchor="end">${
         Math.round(v).toLocaleString()}</text>`;
   }
   const every = Math.ceil(pts.length / 7);
   pts.forEach((p, i) => { if (i % every === 0 || i === pts.length - 1)
-    g += `<text x="${x(i)}" y="${H - 8}" text-anchor="middle" fill="var(--muted)" font-size="10">${
-      esc(p.label)}</text>`; });
+    g += `<text class="ch-axis" x="${x(i)}" y="${H - 8}" text-anchor="middle">${esc(p.label)}</text>`; });
   if (kind === 'bar') {
-    const bw = Math.min(34, step * .7);
+    const bw = Math.min(28, step * .6);
     pts.forEach((p, i) => { if (p.value == null) return;
-      const y0 = y(0), y1 = y(p.value);
-      g += `<rect x="${x(i) - bw / 2}" y="${Math.min(y0, y1)}" width="${bw}" height="${
-        Math.max(1, Math.abs(y1 - y0))}" rx="2" fill="var(--accent)" data-tip="${esc(p.tip)}"/>`; });
+      const y0 = y(0), y1 = y(p.value), h = Math.max(1.5, Math.abs(y1 - y0));
+      g += `<rect class="ch-bar ${p.value < 0 ? 'neg' : ''}" x="${x(i) - bw / 2}"
+        y="${Math.min(y0, y1)}" width="${bw}" height="${h}" rx="${Math.min(3, h / 2)}"
+        data-tip="${esc(p.tip)}"/>`; });
   } else {
-    const ok = pts.map((p, i) => [i, p]).filter(([, p]) => p.value != null);
-    g += `<polyline fill="none" stroke="var(--accent)" stroke-width="2" points="${
-      ok.map(([i, p]) => `${x(i)},${y(p.value)}`).join(' ')}"/>`;
-    ok.forEach(([i, p]) => g += `<circle cx="${x(i)}" cy="${y(p.value)}" r="4"
-      fill="var(--accent)" stroke="var(--panel)" stroke-width="2" data-tip="${esc(p.tip)}"/>`);
+    const ok = pts.map((p, i) => [x(i), y(p.value), p]).filter(a => a[2].value != null);
+    const path = ok.map((a, i) => `${i ? 'L' : 'M'}${a[0]},${a[1]}`).join(' ');
+    if (ok.length > 1) g += `<path class="ch-area" d="${path} L${ok.at(-1)[0]},${y(lo)}
+      L${ok[0][0]},${y(lo)} Z"/><path class="ch-line" d="${path}"/>`;
+    ok.forEach(a => g += `<circle class="ch-pt" cx="${a[0]}" cy="${a[1]}" r="3.5"/>
+      <circle class="ch-hit" cx="${a[0]}" cy="${a[1]}" r="11" data-tip="${esc(a[2].tip)}"/>`);
   }
-  return `<svg viewBox="0 0 ${W} ${H}" role="img">${g}</svg>`;
+  return `<svg class="chart" viewBox="0 0 ${W} ${H}" role="img" aria-label="${esc(label)}">${g}</svg>`;
 }
 
 function spark(hist) {
   const v = hist.map(h => h.count).filter(c => c != null);
   if (v.length < 2) return '';
-  const lo = Math.min(...v), hi = Math.max(...v), W = 80, H = 20;
+  const lo = Math.min(...v), hi = Math.max(...v), W = 84, H = 22;
   const pts = v.map((c, i) => `${i * W / (v.length - 1)},${
-    hi === lo ? H / 2 : H - 2 - (H - 4) * (c - lo) / (hi - lo)}`).join(' ');
-  return `<svg viewBox="0 0 ${W} ${H}" style="width:80px"><polyline fill="none"
-    stroke="var(--accent)" stroke-width="1.5" points="${pts}"/></svg>`;
+    hi === lo ? H / 2 : H - 3 - (H - 6) * (c - lo) / (hi - lo)}`).join(' ');
+  return `<svg class="spark" viewBox="0 0 ${W} ${H}" aria-hidden="true"><polyline points="${pts}"/></svg>`;
+}
+
+function assetBadge(v) {
+  const cls = v === 'CRITICAL' ? 'hostile' : v === 'HIGH' ? 'net' : '';
+  return `<span class="badge ${cls}"><span class="dot"></span>${esc(v || '—')}</span>`;
 }
 
 function eventText(e) {
   const sc = `<code>${esc(e.scope)}</code>`;
+  const tail = `<span class="faint">· 累計 ${n(e.total)},相較 ${esc(e.since)}</span>`;
   switch (e.kind) {
-    case 'program_reports': return `整體回報數 <b class="${dcls(e.delta)}">${signed(e.delta)}</b>
-      (累計 ${n(e.total)},相較 ${esc(e.since)})`;
-    case 'scope_reports': return `${sc} 回報數 <b class="${dcls(e.delta)}">${signed(e.delta)}</b>
-      (累計 ${n(e.total)},相較 ${esc(e.since)})`;
-    case 'scope_added': return `新增 scope ${sc}`;
-    case 'scope_removed': return `移除 scope ${sc}`;
+    case 'program_reports': return `整體回報數 <strong class="num ${dcls(e.delta)}">${signed(e.delta)}</strong> ${tail}`;
+    case 'scope_reports': return `${sc} 回報數 <strong class="num ${dcls(e.delta)}">${signed(e.delta)}</strong> ${tail}`;
+    case 'scope_added': return `<strong class="up">新增 scope</strong> ${sc}`;
+    case 'scope_removed': return `<strong class="down">移除 scope</strong> ${sc}`;
   }
   return esc(e.kind);
 }
@@ -205,55 +505,69 @@ async function loadDetail(id) {
   const p = d.program, s = d.stats, h = d.history;
   const md = x => x.slice(5);
   const bars = h.slice(1).map(x => ({label: md(x.day), value: x.delta,
-    tip: `${x.day}:${signed(x.delta)}`}));
+    tip: `${x.day}  ${signed(x.delta)}`}));
   const line = h.map(x => ({label: md(x.day), value: x.total_reports,
-    tip: `${x.day}:累計 ${n(x.total_reports)}`}));
+    tip: `${x.day}  ${n(x.total_reports)}`}));
+  const stamp = p.taken_at ? new Date(p.taken_at).toLocaleString() : '—';
+  $('#navStatus').textContent = 'SYNC ' + stamp;
   $('#main').innerHTML = `
-    <div class="head">
-      <div><h1>${esc(p.title || p.slug)}</h1>
-        <div class="muted">${esc(p.company || '')} · ${esc(p.platform)} ·
-          賞金 ${n(p.bounty_min)}–${n(p.bounty_max)} ${esc(p.currency || '')}</div>
-        <a href="${esc(p.url)}" target="_blank" rel="noopener noreferrer">${esc(p.url)}</a></div>
-      <div style="text-align:right"><div class="muted" style="font-size:12px">最後更新 ${
-        p.taken_at ? new Date(p.taken_at).toLocaleString() : '—'}</div>
-        ${readOnly ? '' : '<button class="ghost" id="delBtn" style="margin-top:6px">停止追蹤</button>'}</div>
-    </div>
-    <div class="tiles">
-      ${tile('累計回報', n(p.total_reports),
-        p.delta == null ? '尚無前一日快照' : `較 ${esc(p.prev_day)} <span class="${dcls(p.delta)}">${signed(p.delta)}</span>`)}
-      ${tile('過去 24 小時', n(p.last24h), '平台回報值')}
-      ${tile('過去 7 天', n(p.last7d), s.avg_7d == null ? '' : `平均 ${s.avg_7d} / 天`)}
-      ${tile('本月', n(p.month), s.avg_month == null ? '' : `平均 ${s.avg_month} / 天`)}
-      ${tile('追蹤期間日均', s.avg_tracked ?? '—', `已追蹤 ${s.tracked_days} 天`)}
-      ${tile('Scope 數', n(p.scopes_count), `首次回應約 ${n(p.avg_first_response)} 天`)}
-    </div>
-    <div class="grid2">
-      <div class="card"><h2>每日新增回報</h2>${chart(bars, 'bar')}</div>
-      <div class="card"><h2>累計回報</h2>${chart(line, 'line')}</div>
-    </div>
-    <div class="card"><h2>Scope(${d.scopes.length})</h2>
-      ${d.scope_counts_available ? '' : `<div class="note">平台的匿名 API 不提供各 scope 的回報數
-        (欄位回傳 null),目前只能追蹤 scope 的新增與移除。把你自己的 YesWeHack 登入 token 放到
-        <code>data/yeswehack.token</code> 或環境變數 <code>YWH_TOKEN</code> 後,下次更新會嘗試帶入。</div>`}
-      <div class="tablewrap"><table>
-        <tr><th>Scope</th><th>類型</th><th>資產價值</th><th class="r">回報數</th>
-          <th class="r">變化</th><th>最近增加</th><th>首次出現</th><th>趨勢</th></tr>
-        ${d.scopes.map(x => `<tr>
+    <header class="panel hero">
+      <span class="fc c-tl"></span><span class="fc c-tr"></span><span class="fc c-bl"></span><span class="fc c-br"></span>
+      <div style="min-width:0">
+        <div class="hero-tag">${esc(p.platform)} — ${esc(p.slug)}</div>
+        <h1>${esc(p.title || p.slug)}</h1>
+        <div class="tags">
+          ${p.company ? `<span class="badge net plain">${esc(p.company)}</span>` : ''}
+          <span class="badge plain">賞金 ${n(p.bounty_min)}–${n(p.bounty_max)} ${esc(p.currency || '')}</span>
+          <span class="badge plain">首次回應 ${n(p.avg_first_response)} 天</span>
+        </div>
+        <a class="src" href="${esc(p.url)}" target="_blank" rel="noopener noreferrer">${esc(p.url)}${icon('link')}</a>
+      </div>
+      <div class="side">
+        <div class="stamp">LAST SYNC<br>${esc(stamp)}</div>
+        ${readOnly ? '' : `<button class="btn btn-ghost btn-sm danger" id="delBtn">${icon('trash')}停止追蹤</button>`}
+      </div>
+    </header>
+    <section class="kpis" aria-label="統計">
+      ${kpi('累計回報', n(p.total_reports), p.delta == null ? '尚無前一日快照'
+        : `<span class="${dcls(p.delta)}">${arrow(p.delta)}</span> 較 ${esc(p.prev_day)}`, 'inverse')}
+      ${kpi('過去 24 小時', n(p.last24h), '平台回報值')}
+      ${kpi('過去 7 天', n(p.last7d), s.avg_7d == null ? '' : `平均 ${s.avg_7d} / 天`)}
+      ${kpi('本月', n(p.month), s.avg_month == null ? '' : `平均 ${s.avg_month} / 天`)}
+      ${kpi('追蹤期間日均', s.avg_tracked ?? '—', `已追蹤 ${s.tracked_days} 天`)}
+      ${kpi('Scope 數', n(p.scopes_count), '目前列出的範圍')}
+    </section>
+    <section class="grid-2">
+      <div class="panel"><div class="p-head"><span class="idx">01</span><h2>每日新增回報</h2>
+        <span class="read">${bars.length ? 'Δ / DAY' : ''}</span></div>${chart(bars, 'bar', '每日新增回報長條圖')}</div>
+      <div class="panel"><div class="p-head"><span class="idx">02</span><h2>累計回報</h2>
+        <span class="read">TOTAL ${n(p.total_reports)}</span></div>${chart(line, 'line', '累計回報折線圖')}</div>
+    </section>
+    <section class="panel"><div class="p-head"><span class="idx">03</span><h2>Scope</h2>
+        <span class="read">${d.scopes.length} ASSETS</span></div>
+      ${d.scope_counts_available ? '' : `<div class="banner"><span class="b-dot"></span><div><b>NOTICE</b>
+        平台的匿名 API 不提供各 scope 的回報數(欄位回傳 null),目前只能追蹤 scope 的新增與移除。把你自己的平台登入 token 放到
+        <code>data/yeswehack.token</code> 或環境變數 <code>YWH_TOKEN</code> 後,下次更新會嘗試帶入。</div></div>`}
+      <div class="table-wrap"><table>
+        <thead><tr><th>Scope</th><th>類型</th><th>資產價值</th><th class="r">回報數</th>
+          <th class="r">變化</th><th>最近增加</th><th>首次出現</th><th>趨勢</th></tr></thead>
+        <tbody>${d.scopes.map(x => `<tr>
           <td class="scope" title="${esc(x.scope)}">${esc(x.scope)}</td>
-          <td class="muted">${esc(x.type)}</td>
-          <td><span class="badge ${esc(x.asset_value)}">${esc(x.asset_value || '—')}</span></td>
+          <td class="type">${esc(x.type)}</td>
+          <td>${assetBadge(x.asset_value)}</td>
           <td class="r num">${n(x.report_count)}</td>
           <td class="r num ${dcls(x.delta)}">${signed(x.delta)}</td>
-          <td class="muted">${esc(x.last_increase || '—')}</td>
-          <td class="muted">${esc(x.first_seen)}</td>
-          <td>${spark(x.history)}</td></tr>`).join('')}
+          <td class="num">${esc(x.last_increase || '—')}</td>
+          <td class="num">${esc(x.first_seen)}</td>
+          <td>${spark(x.history)}</td></tr>`).join('')}</tbody>
       </table></div>
-    </div>
-    <div class="card"><h2>變動紀錄</h2>
-      ${d.events.length ? d.events.map(e => `<div class="ev"><div class="d num">${esc(e.day)}</div>
-        <div class="b">${eventText(e)}</div></div>`).join('')
-        : '<div class="muted">需要至少兩天的快照才會出現變動。</div>'}
-    </div>`;
+    </section>
+    <section class="panel"><div class="p-head"><span class="idx">04</span><h2>變動紀錄</h2>
+        <span class="read">${d.events.length} EVENTS</span></div>
+      ${d.events.length ? d.events.map(e => `<div class="tl-item ${esc(e.kind)}"><i></i>
+        <div><b>${esc(e.day)}</b><p>${eventText(e)}</p></div></div>`).join('')
+        : '<p class="faint" style="font-size:13.5px">需要至少兩天的快照才會出現變動。</p>'}
+    </section>`;
   if (!readOnly) $('#delBtn').onclick = async () => {
     if (!confirm(`停止追蹤「${p.title}」並刪除其歷史資料?`)) return;
     await api('/api/programs/' + id, {method: 'DELETE'});
@@ -261,13 +575,21 @@ async function loadDetail(id) {
   };
 }
 
-document.addEventListener('mousemove', e => {
-  const t = e.target.closest?.('[data-tip]'), tip = $('#tip');
+function showTip(t, cx, cy) {
+  const tip = $('#tip');
   if (!t) { tip.style.display = 'none'; return; }
   tip.textContent = t.dataset.tip; tip.style.display = 'block';
-  tip.style.left = e.clientX + 12 + 'px'; tip.style.top = e.clientY - 30 + 'px';
+  const w = tip.offsetWidth;
+  tip.style.left = Math.max(8, Math.min(cx + 14, innerWidth - w - 8)) + 'px';
+  tip.style.top = Math.max(8, cy - 36) + 'px';
+}
+document.addEventListener('mousemove', e => showTip(e.target.closest?.('[data-tip]'), e.clientX, e.clientY));
+document.addEventListener('click', e => {
+  const t = e.target.closest?.('[data-tip]');
+  if (t) { const r = t.getBoundingClientRect(); showTip(t, r.left + r.width / 2, r.top); }
 });
 
+$('#filter').oninput = renderList;
 $('#addForm').onsubmit = async e => {
   e.preventDefault();
   const btn = $('#addBtn'); btn.disabled = true; $('#err').textContent = '';
@@ -280,10 +602,11 @@ $('#addForm').onsubmit = async e => {
   btn.disabled = false;
 };
 $('#collectBtn').onclick = async () => {
-  const b = $('#collectBtn'); b.disabled = true; b.textContent = '更新中…';
+  const b = $('#collectBtn'), label = b.querySelector('span'), ic = b.querySelector('svg');
+  b.disabled = true; label.textContent = '更新中…'; ic.classList.add('spin');
   try { await api('/api/collect', {method: 'POST'}); await loadList(); }
   catch (x) { $('#err').textContent = x.message; }
-  b.disabled = false; b.textContent = '立即更新全部';
+  b.disabled = false; label.textContent = '立即更新全部'; ic.classList.remove('spin');
 };
 api('/api/config').then(c => { readOnly = c.read_only;
   if (readOnly) { $('#addForm').style.display = 'none'; $('#collectBtn').style.display = 'none'; }
