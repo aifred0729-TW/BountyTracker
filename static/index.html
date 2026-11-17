@@ -1,0 +1,293 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>BountyTracker</title>
+<style>
+:root {
+  --bg: #0e1116; --panel: #161b22; --panel2: #1c232d; --line: #2a323d;
+  --text: #e6edf3; --muted: #8b98a8; --accent: #3fb6a8; --accent-dim: #1f5f59;
+  --up: #56d364; --warn: #e3b341; --bad: #f47067;
+}
+* { box-sizing: border-box; }
+body { margin: 0; background: var(--bg); color: var(--text);
+  font: 14px/1.5 system-ui, "Noto Sans TC", "PingFang TC", sans-serif; }
+.app { display: grid; grid-template-columns: 300px 1fr; min-height: 100vh; }
+aside { background: var(--panel); border-right: 1px solid var(--line); padding: 16px;
+  display: flex; flex-direction: column; gap: 12px; position: sticky; top: 0; height: 100vh; }
+h1 { font-size: 18px; margin: 0; letter-spacing: .3px; }
+h1 span { color: var(--accent); }
+h2 { font-size: 13px; text-transform: uppercase; letter-spacing: .8px; color: var(--muted);
+  margin: 0 0 10px; font-weight: 600; }
+form { display: flex; gap: 6px; }
+input { flex: 1; min-width: 0; background: var(--bg); border: 1px solid var(--line);
+  color: var(--text); border-radius: 6px; padding: 7px 9px; font: inherit; }
+input:focus { outline: 1px solid var(--accent); border-color: var(--accent); }
+button { background: var(--accent-dim); color: var(--text); border: 1px solid var(--accent);
+  border-radius: 6px; padding: 7px 11px; font: inherit; cursor: pointer; white-space: nowrap; }
+button:hover { background: var(--accent); color: #06231f; }
+button.ghost { background: transparent; border-color: var(--line); color: var(--muted); }
+button.ghost:hover { color: var(--text); border-color: var(--muted); background: transparent; }
+button:disabled { opacity: .5; cursor: wait; }
+.plist { display: flex; flex-direction: column; gap: 6px; overflow-y: auto; }
+.pitem { padding: 10px; border: 1px solid var(--line); border-radius: 8px; cursor: pointer;
+  background: var(--bg); }
+.pitem:hover { border-color: var(--muted); }
+.pitem.active { border-color: var(--accent); background: var(--panel2); }
+.pitem .t { font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.pitem .m { display: flex; justify-content: space-between; color: var(--muted); font-size: 12px; }
+.num { font-variant-numeric: tabular-nums; }
+.up { color: var(--up); } .bad { color: var(--bad); } .muted { color: var(--muted); }
+main { padding: 24px 28px; min-width: 0; }
+.head { display: flex; justify-content: space-between; align-items: flex-start; gap: 16px;
+  margin-bottom: 18px; flex-wrap: wrap; }
+.head h1 { font-size: 22px; }
+.head a { color: var(--accent); text-decoration: none; font-size: 13px; word-break: break-all; }
+.tiles { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 12px;
+  margin-bottom: 18px; }
+.tile { background: var(--panel); border: 1px solid var(--line); border-radius: 10px;
+  padding: 14px; }
+.tile .k { color: var(--muted); font-size: 12px; }
+.tile .v { font-size: 26px; font-weight: 650; margin-top: 2px; }
+.tile .s { color: var(--muted); font-size: 12px; }
+.card { background: var(--panel); border: 1px solid var(--line); border-radius: 10px;
+  padding: 16px; margin-bottom: 18px; }
+.grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 18px; }
+.grid2 .card { margin-bottom: 0; }
+.grid2 { margin-bottom: 18px; }
+svg { display: block; width: 100%; height: auto; }
+.tablewrap { overflow-x: auto; }
+table { width: 100%; border-collapse: collapse; }
+th, td { text-align: left; padding: 8px 10px; border-bottom: 1px solid var(--line);
+  vertical-align: middle; }
+th { color: var(--muted); font-weight: 600; font-size: 12px; }
+td.r, th.r { text-align: right; }
+td.scope { max-width: 420px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.badge { display: inline-block; padding: 1px 7px; border-radius: 99px; font-size: 11px;
+  border: 1px solid var(--line); color: var(--muted); }
+.badge.CRITICAL { color: var(--bad); border-color: var(--bad); }
+.badge.HIGH { color: var(--warn); border-color: var(--warn); }
+.note { border-left: 3px solid var(--warn); background: var(--panel2); padding: 10px 12px;
+  border-radius: 0 6px 6px 0; color: var(--muted); margin-bottom: 12px; font-size: 13px; }
+.note code { color: var(--text); }
+.ev { display: flex; gap: 12px; padding: 7px 0; border-bottom: 1px solid var(--line); }
+.ev:last-child { border-bottom: 0; }
+.ev .d { color: var(--muted); width: 92px; flex: none; }
+.ev .b { min-width: 0; overflow-wrap: anywhere; }
+.empty { color: var(--muted); padding: 40px 0; text-align: center; }
+.err { color: var(--bad); font-size: 12px; min-height: 18px; overflow-wrap: anywhere; }
+#tip { position: fixed; pointer-events: none; background: #000c; border: 1px solid var(--line);
+  padding: 5px 8px; border-radius: 6px; font-size: 12px; display: none; z-index: 9; }
+@media (max-width: 860px) {
+  .app { grid-template-columns: 1fr; } .grid2 { grid-template-columns: 1fr; }
+  aside { border-right: 0; border-bottom: 1px solid var(--line); } main { padding: 16px; }
+}
+</style>
+</head>
+<body>
+<div class="app">
+  <aside>
+    <h1>Bounty<span>Tracker</span></h1>
+    <form id="addForm">
+      <input id="addUrl" placeholder="貼上 YesWeHack program 連結" autocomplete="off">
+      <button id="addBtn">追蹤</button>
+    </form>
+    <div class="err" id="err"></div>
+    <div class="plist" id="plist"></div>
+    <button class="ghost" id="collectBtn" style="margin-top:auto">立即更新全部</button>
+  </aside>
+  <main id="main"><div class="empty">貼上一個 program 連結開始追蹤。</div></main>
+</div>
+<div id="tip"></div>
+<script>
+const $ = s => document.querySelector(s);
+const esc = s => String(s ?? '').replace(/[&<>"']/g,
+  c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const n = v => v == null ? '—' : Number(v).toLocaleString();
+const signed = v => v == null ? '—' : (v > 0 ? '+' : '') + v;
+const dcls = v => v > 0 ? 'up' : v < 0 ? 'bad' : 'muted';
+let current = null, readOnly = false;
+
+async function api(path, opt) {
+  const r = await fetch(path, opt);
+  const j = await r.json();
+  if (!r.ok) throw new Error(j.error || r.statusText);
+  return j;
+}
+
+async function loadList(selectId) {
+  const list = await api('/api/programs');
+  if (selectId) current = selectId;
+  if (!list.some(p => p.id === current)) current = list[0]?.id ?? null;
+  $('#plist').innerHTML = list.map(p => `
+    <div class="pitem ${p.id === current ? 'active' : ''}" data-id="${p.id}">
+      <div class="t">${esc(p.title || p.slug)}</div>
+      <div class="m"><span>${esc(p.platform)}</span>
+        <span class="num">${n(p.total_reports)}
+          <span class="${dcls(p.delta)}">${p.delta == null ? '' : signed(p.delta)}</span></span></div>
+      ${p.last_error ? `<div class="err">${esc(p.last_error)}</div>` : ''}
+    </div>`).join('');
+  document.querySelectorAll('.pitem').forEach(el =>
+    el.onclick = () => { current = +el.dataset.id; loadList(); });
+  if (current) loadDetail(current);
+  else $('#main').innerHTML = '<div class="empty">貼上一個 program 連結開始追蹤。</div>';
+}
+
+function tile(k, v, s) {
+  return `<div class="tile"><div class="k">${k}</div><div class="v num">${v}</div>
+    <div class="s">${s || '&nbsp;'}</div></div>`;
+}
+
+// Bar or line chart as inline SVG. pts: [{label, value, tip}]
+function chart(pts, kind) {
+  const W = 560, H = 200, L = 44, R = 10, T = 12, B = 26;
+  const vals = pts.map(p => p.value).filter(v => v != null);
+  if (!vals.length) return '<div class="empty">還沒有足夠的資料</div>';
+  let lo = kind === 'bar' ? Math.min(0, ...vals) : Math.min(...vals);
+  let hi = Math.max(...vals, kind === 'bar' ? 1 : -Infinity);
+  if (hi === lo) { hi += 1; lo -= kind === 'bar' ? 0 : 1; }
+  const y = v => T + (H - T - B) * (1 - (v - lo) / (hi - lo));
+  const step = (W - L - R) / pts.length, x = i => L + step * (i + .5);
+  let g = '';
+  for (let i = 0; i <= 3; i++) {
+    const v = lo + (hi - lo) * i / 3, yy = y(v);
+    g += `<line x1="${L}" x2="${W - R}" y1="${yy}" y2="${yy}" stroke="var(--line)"/>
+      <text x="${L - 6}" y="${yy + 4}" text-anchor="end" fill="var(--muted)" font-size="10">${
+        Math.round(v).toLocaleString()}</text>`;
+  }
+  const every = Math.ceil(pts.length / 7);
+  pts.forEach((p, i) => { if (i % every === 0 || i === pts.length - 1)
+    g += `<text x="${x(i)}" y="${H - 8}" text-anchor="middle" fill="var(--muted)" font-size="10">${
+      esc(p.label)}</text>`; });
+  if (kind === 'bar') {
+    const bw = Math.min(34, step * .7);
+    pts.forEach((p, i) => { if (p.value == null) return;
+      const y0 = y(0), y1 = y(p.value);
+      g += `<rect x="${x(i) - bw / 2}" y="${Math.min(y0, y1)}" width="${bw}" height="${
+        Math.max(1, Math.abs(y1 - y0))}" rx="2" fill="var(--accent)" data-tip="${esc(p.tip)}"/>`; });
+  } else {
+    const ok = pts.map((p, i) => [i, p]).filter(([, p]) => p.value != null);
+    g += `<polyline fill="none" stroke="var(--accent)" stroke-width="2" points="${
+      ok.map(([i, p]) => `${x(i)},${y(p.value)}`).join(' ')}"/>`;
+    ok.forEach(([i, p]) => g += `<circle cx="${x(i)}" cy="${y(p.value)}" r="4"
+      fill="var(--accent)" stroke="var(--panel)" stroke-width="2" data-tip="${esc(p.tip)}"/>`);
+  }
+  return `<svg viewBox="0 0 ${W} ${H}" role="img">${g}</svg>`;
+}
+
+function spark(hist) {
+  const v = hist.map(h => h.count).filter(c => c != null);
+  if (v.length < 2) return '';
+  const lo = Math.min(...v), hi = Math.max(...v), W = 80, H = 20;
+  const pts = v.map((c, i) => `${i * W / (v.length - 1)},${
+    hi === lo ? H / 2 : H - 2 - (H - 4) * (c - lo) / (hi - lo)}`).join(' ');
+  return `<svg viewBox="0 0 ${W} ${H}" style="width:80px"><polyline fill="none"
+    stroke="var(--accent)" stroke-width="1.5" points="${pts}"/></svg>`;
+}
+
+function eventText(e) {
+  const sc = `<code>${esc(e.scope)}</code>`;
+  switch (e.kind) {
+    case 'program_reports': return `整體回報數 <b class="${dcls(e.delta)}">${signed(e.delta)}</b>
+      (累計 ${n(e.total)},相較 ${esc(e.since)})`;
+    case 'scope_reports': return `${sc} 回報數 <b class="${dcls(e.delta)}">${signed(e.delta)}</b>
+      (累計 ${n(e.total)},相較 ${esc(e.since)})`;
+    case 'scope_added': return `新增 scope ${sc}`;
+    case 'scope_removed': return `移除 scope ${sc}`;
+  }
+  return esc(e.kind);
+}
+
+async function loadDetail(id) {
+  const d = await api('/api/programs/' + id);
+  if (id !== current) return;
+  const p = d.program, s = d.stats, h = d.history;
+  const md = x => x.slice(5);
+  const bars = h.slice(1).map(x => ({label: md(x.day), value: x.delta,
+    tip: `${x.day}:${signed(x.delta)}`}));
+  const line = h.map(x => ({label: md(x.day), value: x.total_reports,
+    tip: `${x.day}:累計 ${n(x.total_reports)}`}));
+  $('#main').innerHTML = `
+    <div class="head">
+      <div><h1>${esc(p.title || p.slug)}</h1>
+        <div class="muted">${esc(p.company || '')} · ${esc(p.platform)} ·
+          賞金 ${n(p.bounty_min)}–${n(p.bounty_max)} ${esc(p.currency || '')}</div>
+        <a href="${esc(p.url)}" target="_blank" rel="noopener noreferrer">${esc(p.url)}</a></div>
+      <div style="text-align:right"><div class="muted" style="font-size:12px">最後更新 ${
+        p.taken_at ? new Date(p.taken_at).toLocaleString() : '—'}</div>
+        ${readOnly ? '' : '<button class="ghost" id="delBtn" style="margin-top:6px">停止追蹤</button>'}</div>
+    </div>
+    <div class="tiles">
+      ${tile('累計回報', n(p.total_reports),
+        p.delta == null ? '尚無前一日快照' : `較 ${esc(p.prev_day)} <span class="${dcls(p.delta)}">${signed(p.delta)}</span>`)}
+      ${tile('過去 24 小時', n(p.last24h), '平台回報值')}
+      ${tile('過去 7 天', n(p.last7d), s.avg_7d == null ? '' : `平均 ${s.avg_7d} / 天`)}
+      ${tile('本月', n(p.month), s.avg_month == null ? '' : `平均 ${s.avg_month} / 天`)}
+      ${tile('追蹤期間日均', s.avg_tracked ?? '—', `已追蹤 ${s.tracked_days} 天`)}
+      ${tile('Scope 數', n(p.scopes_count), `首次回應約 ${n(p.avg_first_response)} 天`)}
+    </div>
+    <div class="grid2">
+      <div class="card"><h2>每日新增回報</h2>${chart(bars, 'bar')}</div>
+      <div class="card"><h2>累計回報</h2>${chart(line, 'line')}</div>
+    </div>
+    <div class="card"><h2>Scope(${d.scopes.length})</h2>
+      ${d.scope_counts_available ? '' : `<div class="note">平台的匿名 API 不提供各 scope 的回報數
+        (欄位回傳 null),目前只能追蹤 scope 的新增與移除。把你自己的 YesWeHack 登入 token 放到
+        <code>data/yeswehack.token</code> 或環境變數 <code>YWH_TOKEN</code> 後,下次更新會嘗試帶入。</div>`}
+      <div class="tablewrap"><table>
+        <tr><th>Scope</th><th>類型</th><th>資產價值</th><th class="r">回報數</th>
+          <th class="r">變化</th><th>最近增加</th><th>首次出現</th><th>趨勢</th></tr>
+        ${d.scopes.map(x => `<tr>
+          <td class="scope" title="${esc(x.scope)}">${esc(x.scope)}</td>
+          <td class="muted">${esc(x.type)}</td>
+          <td><span class="badge ${esc(x.asset_value)}">${esc(x.asset_value || '—')}</span></td>
+          <td class="r num">${n(x.report_count)}</td>
+          <td class="r num ${dcls(x.delta)}">${signed(x.delta)}</td>
+          <td class="muted">${esc(x.last_increase || '—')}</td>
+          <td class="muted">${esc(x.first_seen)}</td>
+          <td>${spark(x.history)}</td></tr>`).join('')}
+      </table></div>
+    </div>
+    <div class="card"><h2>變動紀錄</h2>
+      ${d.events.length ? d.events.map(e => `<div class="ev"><div class="d num">${esc(e.day)}</div>
+        <div class="b">${eventText(e)}</div></div>`).join('')
+        : '<div class="muted">需要至少兩天的快照才會出現變動。</div>'}
+    </div>`;
+  if (!readOnly) $('#delBtn').onclick = async () => {
+    if (!confirm(`停止追蹤「${p.title}」並刪除其歷史資料?`)) return;
+    await api('/api/programs/' + id, {method: 'DELETE'});
+    current = null; loadList();
+  };
+}
+
+document.addEventListener('mousemove', e => {
+  const t = e.target.closest?.('[data-tip]'), tip = $('#tip');
+  if (!t) { tip.style.display = 'none'; return; }
+  tip.textContent = t.dataset.tip; tip.style.display = 'block';
+  tip.style.left = e.clientX + 12 + 'px'; tip.style.top = e.clientY - 30 + 'px';
+});
+
+$('#addForm').onsubmit = async e => {
+  e.preventDefault();
+  const btn = $('#addBtn'); btn.disabled = true; $('#err').textContent = '';
+  try {
+    const r = await api('/api/programs', {method: 'POST',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({url: $('#addUrl').value})});
+    $('#addUrl').value = ''; await loadList(r.id);
+  } catch (x) { $('#err').textContent = x.message; }
+  btn.disabled = false;
+};
+$('#collectBtn').onclick = async () => {
+  const b = $('#collectBtn'); b.disabled = true; b.textContent = '更新中…';
+  try { await api('/api/collect', {method: 'POST'}); await loadList(); }
+  catch (x) { $('#err').textContent = x.message; }
+  b.disabled = false; b.textContent = '立即更新全部';
+};
+api('/api/config').then(c => { readOnly = c.read_only;
+  if (readOnly) { $('#addForm').style.display = 'none'; $('#collectBtn').style.display = 'none'; }
+}).catch(() => {}).finally(() => loadList().catch(x => $('#err').textContent = x.message));
+</script>
+</body>
+</html>
